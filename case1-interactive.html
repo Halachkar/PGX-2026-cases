@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Case 1 · Preemptive DPYD Testing</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400..600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    box-sizing:border-box;
+    padding-top:env(safe-area-inset-top,0px);
+    padding-bottom:env(safe-area-inset-bottom,0px);
+    --bg:#f6f3ee; --card:#fffdf8; --alt:#ebe5da; --ink:#1d2433; --muted:#5b6474;
+    --teal:#1d6f80; --teal-soft:#e6f1f3; --orange:#d9822b; --otxt:#a4520f;
+    --red:#9b2226; --red-soft:#f7e7e7; --green:#1d6f80; --green-soft:#e6f1f3;
+    --line:#d9d2c6; --dark:#172033;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#141a26; --card:#1d2533; --alt:#232c3b; --ink:#f3efe7; --muted:#b8bfcc;
+      --teal:#8fc6d1; --teal-soft:#1d3842; --orange:#f2a65a; --otxt:#f2a65a;
+      --red:#f08d8d; --red-soft:#3a2225; --green:#8fc6d1; --green-soft:#1d3842;
+      --line:#303a4b; --dark:#0e131c;
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#141a26; --card:#1d2533; --alt:#232c3b; --ink:#f3efe7; --muted:#b8bfcc;
+    --teal:#8fc6d1; --teal-soft:#1d3842; --orange:#f2a65a; --otxt:#f2a65a;
+    --red:#f08d8d; --red-soft:#3a2225; --green:#8fc6d1; --green-soft:#1d3842;
+    --line:#303a4b; --dark:#0e131c;
+  }
+  *,*::before,*::after{box-sizing:inherit}
+  html{-webkit-text-size-adjust:100%;scroll-padding-top:env(safe-area-inset-top,0px)}
+  body{
+    margin:0;background:var(--bg);color:var(--ink);
+    font-family:'Inter',system-ui,-apple-system,"Segoe UI",Arial,sans-serif;
+    font-size:17px;line-height:1.5;
+  }
+  .wrap{max-width:720px;margin:0 auto;padding:20px 18px 56px}
+  header.top{
+    background:var(--dark);color:#f3efe7;border-radius:16px;padding:22px 22px 20px;margin-bottom:18px;
+  }
+  header.top .eyebrow{
+    font-size:13px;letter-spacing:2.5px;text-transform:uppercase;color:#f2a65a;font-weight:600;margin:0 0 10px
+  }
+  header.top h1{
+    font-family:'Fraunces',Georgia,serif;font-weight:500;font-size:27px;line-height:1.2;margin:0 0 8px;color:#f3efe7
+  }
+  header.top p.sub{margin:0;color:#8fc6d1;font-size:15px}
+
+  .vignette{
+    background:var(--card);border-left:6px solid var(--orange);border-radius:12px;
+    padding:18px 20px;margin-bottom:18px;
+  }
+  .vignette .label{
+    font-size:12px;letter-spacing:2px;text-transform:uppercase;color:var(--otxt);font-weight:700;margin:0 0 8px
+  }
+  .vignette p{margin:0;font-size:17px;line-height:1.5}
+  .vignette dl{margin:12px 0 0;display:grid;grid-template-columns:auto 1fr;gap:4px 14px;font-size:15px}
+  .vignette dt{color:var(--muted);font-weight:500}
+  .vignette dd{margin:0;font-weight:600}
+
+  .progress{display:flex;gap:6px;margin:0 0 16px}
+  .progress span{
+    flex:1;height:5px;border-radius:3px;background:var(--line);transition:background .25s
+  }
+  .progress span.done{background:var(--teal)}
+  .progress span.current{background:var(--orange)}
+
+  .qcard{background:var(--card);border-radius:14px;padding:20px;border:1px solid var(--line)}
+  .qnum{font-size:13px;letter-spacing:2px;text-transform:uppercase;color:var(--teal);font-weight:700;margin:0 0 8px}
+  .qtext{font-size:20px;line-height:1.35;font-weight:600;margin:0 0 16px}
+
+  .opts{display:flex;flex-direction:column;gap:10px}
+  button.opt{
+    font:inherit;text-align:left;width:100%;cursor:pointer;
+    background:var(--bg);color:var(--ink);border:2px solid var(--line);border-radius:11px;
+    padding:14px 16px;display:flex;gap:13px;align-items:flex-start;
+    transition:border-color .15s,background .15s;
+  }
+  button.opt:hover:not(:disabled){border-color:var(--teal)}
+  button.opt:disabled{cursor:default}
+  button.opt .key{
+    flex:0 0 27px;height:27px;border-radius:50%;background:var(--alt);color:var(--ink);
+    display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px
+  }
+  button.opt .body{flex:1;font-size:16.5px;line-height:1.4}
+  button.opt.correct{border-color:var(--green);background:var(--green-soft)}
+  button.opt.correct .key{background:var(--green);color:var(--card)}
+  button.opt.wrong{border-color:var(--red);background:var(--red-soft)}
+  button.opt.wrong .key{background:var(--red);color:var(--card)}
+  button.opt.faded{opacity:.55}
+
+  .feedback{margin-top:16px;border-radius:11px;padding:16px;display:none}
+  .feedback.show{display:block}
+  .feedback .verdict{font-weight:700;font-size:17px;margin:0 0 7px}
+  .feedback.right{background:var(--green-soft);border-left:5px solid var(--green)}
+  .feedback.right .verdict{color:var(--green)}
+  .feedback.notright{background:var(--red-soft);border-left:5px solid var(--red)}
+  .feedback.notright .verdict{color:var(--red)}
+  .feedback p{margin:0;font-size:16px;line-height:1.5}
+  .feedback .cite{display:block;margin-top:10px;font-size:13px;color:var(--muted);line-height:1.4}
+
+  .nav{margin-top:18px;display:flex;gap:10px;align-items:center}
+  button.primary{
+    font:inherit;font-weight:600;font-size:16.5px;cursor:pointer;
+    background:var(--teal);color:var(--bg);border:none;border-radius:11px;padding:14px 22px;flex:1
+  }
+  button.primary:disabled{opacity:.35;cursor:default}
+  button.ghost{
+    font:inherit;font-weight:600;font-size:15px;cursor:pointer;background:none;
+    color:var(--muted);border:2px solid var(--line);border-radius:11px;padding:12px 16px
+  }
+
+  .hint{font-size:14px;color:var(--muted);margin:14px 2px 0;line-height:1.45}
+
+  /* summary */
+  .summary{display:none}
+  .summary.show{display:block}
+  .score{
+    background:var(--card);border-radius:14px;padding:24px 20px;text-align:center;border:1px solid var(--line);margin-bottom:16px
+  }
+  .score .big{font-family:'Fraunces',Georgia,serif;font-size:54px;font-weight:500;line-height:1;color:var(--teal);margin:0}
+  .score .lbl{margin:8px 0 0;color:var(--muted);font-size:15px}
+  .recap{background:var(--card);border-radius:14px;padding:4px 20px;border:1px solid var(--line);margin-bottom:16px}
+  .recap .row{padding:16px 0;border-bottom:1px solid var(--line)}
+  .recap .row:last-child{border-bottom:none}
+  .recap .q{font-weight:600;font-size:16px;margin:0 0 6px;line-height:1.35}
+  .recap .a{margin:0;font-size:15.5px;line-height:1.45;color:var(--muted)}
+  .recap .a b{color:var(--ink)}
+  .takeaway{
+    background:var(--teal-soft);border-left:5px solid var(--teal);border-radius:11px;padding:18px 20px;margin-bottom:16px
+  }
+  .takeaway h2{font-family:'Fraunces',Georgia,serif;font-weight:500;font-size:21px;margin:0 0 10px;color:var(--ink)}
+  .takeaway ul{margin:0;padding-left:20px}
+  .takeaway li{margin-bottom:8px;font-size:16px;line-height:1.45}
+  .takeaway li:last-child{margin-bottom:0}
+  footer.foot{margin-top:24px;font-size:13px;color:var(--muted);line-height:1.5;text-align:center}
+  footer.foot a{color:var(--teal)}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="top">
+    <p class="eyebrow">2026 CSHP Seminar · Case 1</p>
+    <h1>Preemptive DPYD testing before capecitabine</h1>
+    <p class="sub">Decoding the Tumor and the Patient: Pharmacogenomics in Cancer Care</p>
+  </header>
+
+  <section class="vignette">
+    <p class="label">Composite, de-identified case</p>
+    <p>A 62-year-old is starting adjuvant CAPOX for stage III colon cancer. Preemptive genotyping is sent before cycle 1.</p>
+    <dl>
+      <dt>Gene</dt><dd>DPYD</dd>
+      <dt>Result</dt><dd>Heterozygous c.1905+1G&gt;A (DPYD*2A)</dd>
+      <dt>Activity score</dt><dd>1.0</dd>
+      <dt>Intent</dt><dd>Adjuvant, curative</dd>
+    </dl>
+  </section>
+
+  <div class="progress" id="progress" aria-hidden="true"></div>
+
+  <main id="quiz">
+    <section class="qcard" id="qcard">
+      <p class="qnum" id="qnum"></p>
+      <p class="qtext" id="qtext"></p>
+      <div class="opts" id="opts"></div>
+      <div class="feedback" id="feedback">
+        <p class="verdict" id="verdict"></p>
+        <p id="explain"></p>
+        <span class="cite" id="cite"></span>
+      </div>
+      <div class="nav">
+        <button class="primary" id="next" disabled>Select an answer</button>
+      </div>
+    </section>
+    <p class="hint" id="hint">Answer on your own, then we will debrief together. Nothing you tap is recorded or sent anywhere.</p>
+  </main>
+
+  <section class="summary" id="summary">
+    <div class="score">
+      <p class="big" id="scoreBig">0 / 5</p>
+      <p class="lbl" id="scoreLbl">first-attempt answers</p>
+    </div>
+    <div class="recap" id="recap"></div>
+    <div class="takeaway">
+      <h2>What to carry back to practice</h2>
+      <ul>
+        <li>Activity score 1.0 is partial DPD deficiency, not a contraindication: halve the start, then titrate.</li>
+        <li>The titration step is the one most often forgotten. Leaving a curative-intent patient at 50% risks undertreatment.</li>
+        <li>A normal panel does not rule out DPD deficiency. Monitor early cycles regardless.</li>
+        <li>Store the result as discrete, coded data so it fires an alert years from now.</li>
+      </ul>
+    </div>
+    <div class="nav">
+      <button class="ghost" id="restart">Start over</button>
+    </div>
+  </section>
+
+  <footer class="foot">
+    Verify all dosing against the current CPIC guideline and FDA labeling at the time of use.<br>
+    Educational use only; institutional policy governs local practice.
+  </footer>
+
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  var QUESTIONS = [
+    {
+      q: "What phenotype does an activity score of 1.0 assign?",
+      opts: [
+        "Normal metabolizer",
+        "Intermediate metabolizer",
+        "Poor metabolizer",
+        "Indeterminate — the panel cannot assign one"
+      ],
+      correct: 1,
+      right: "Correct.",
+      wrong: "Not quite.",
+      why: "One no-function allele (*2A, value 0) plus one normal allele (value 1) gives an activity score of 1.0: an intermediate metabolizer with partial DPD deficiency. Scores of 0 or 0.5 are poor metabolizers; a score of 2 is normal.",
+      cite: "CPIC guideline for fluoropyrimidines and DPYD"
+    },
+    {
+      q: "What capecitabine starting dose do you recommend?",
+      opts: [
+        "Standard dose — this is only a heterozygous carrier",
+        "About 50% of standard, then titrate by tolerability",
+        "25% of standard, held there for the full course",
+        "Avoid fluoropyrimidines entirely"
+      ],
+      correct: 1,
+      right: "That's it.",
+      wrong: "Not this one.",
+      why: "CPIC recommends reducing the starting dose by roughly 50% for intermediate metabolizers, then escalating guided by tolerability. Avoidance is reserved for poor metabolizers. A standard dose risks severe early toxicity.",
+      cite: "CPIC guideline for fluoropyrimidines and DPYD · FDA capecitabine labeling"
+    },
+    {
+      q: "Cycles 1 and 2 are tolerated with no significant toxicity. What now?",
+      opts: [
+        "Hold at the reduced dose for the rest of treatment",
+        "Escalate toward standard dosing, guided by tolerability",
+        "Switch to infusional fluorouracil at full dose",
+        "Add prophylactic G-CSF and continue unchanged"
+      ],
+      correct: 1,
+      right: "Yes — this is the step most often missed.",
+      wrong: "This is the step most often missed.",
+      why: "The reduction is a starting dose, not a ceiling. In an adjuvant, curative-intent setting, leaving the patient at 50% indefinitely trades a toxicity risk for an undertreatment risk. Escalate when tolerability allows.",
+      cite: "CPIC guideline for fluoropyrimidines and DPYD"
+    },
+    {
+      q: "A different patient has a completely normal DPYD panel. What does that tell you?",
+      opts: [
+        "DPD deficiency is excluded; routine monitoring is enough",
+        "Severe toxicity is still possible — panels test a limited variant set",
+        "The test should be repeated before every cycle",
+        "Phenotype testing is now mandatory before dosing"
+      ],
+      correct: 1,
+      right: "Correct.",
+      wrong: "Worth a second look.",
+      why: "Genotyping panels cover a limited set of variants and differ between laboratories, so a normal result lowers but does not eliminate risk. There is no FDA-authorized DPYD test; assays are laboratory-developed. Early-cycle vigilance stays mandatory.",
+      cite: "FDA safety communication on DPD deficiency, February 2026"
+    },
+    {
+      q: "Where should this result be filed so it protects the patient in five years?",
+      opts: [
+        "Scanned into the media tab as a PDF",
+        "A discrete, coded genomic result field in the EHR",
+        "A free-text line in the pharmacy progress note",
+        "Given to the patient on a printed card only"
+      ],
+      correct: 1,
+      right: "Exactly.",
+      wrong: "Think about the alert.",
+      why: "Only discrete, coded data can drive clinical decision support. A scanned PDF or a free-text note cannot fire an alert when a different service prescribes a fluoropyrimidine years later. Give the patient a copy as well — but the EHR entry is what carries forward.",
+      cite: "Ho WJ, et al. Clin Pharmacol Ther. 2025 (DPYD implementation)"
+    }
+  ];
+
+  var KEYS = ["A","B","C","D"];
+  var idx = 0, locked = false, firstTry = [], picks = [];
+
+  var elProgress = document.getElementById("progress");
+  var elQnum = document.getElementById("qnum");
+  var elQtext = document.getElementById("qtext");
+  var elOpts = document.getElementById("opts");
+  var elFeedback = document.getElementById("feedback");
+  var elVerdict = document.getElementById("verdict");
+  var elExplain = document.getElementById("explain");
+  var elCite = document.getElementById("cite");
+  var elNext = document.getElementById("next");
+  var elQuiz = document.getElementById("quiz");
+  var elSummary = document.getElementById("summary");
+  var elHint = document.getElementById("hint");
+
+  function buildProgress(){
+    elProgress.innerHTML = "";
+    for (var i = 0; i < QUESTIONS.length; i++){
+      var s = document.createElement("span");
+      if (i < idx) s.className = "done";
+      else if (i === idx) s.className = "current";
+      elProgress.appendChild(s);
+    }
+  }
+
+  function render(){
+    var item = QUESTIONS[idx];
+    locked = false;
+    buildProgress();
+    elQnum.textContent = "Question " + (idx + 1) + " of " + QUESTIONS.length;
+    elQtext.textContent = item.q;
+    elFeedback.className = "feedback";
+    elNext.disabled = true;
+    elNext.textContent = "Select an answer";
+    elOpts.innerHTML = "";
+
+    item.opts.forEach(function(text, i){
+      var b = document.createElement("button");
+      b.className = "opt";
+      b.type = "button";
+      var k = document.createElement("span");
+      k.className = "key";
+      k.textContent = KEYS[i];
+      var body = document.createElement("span");
+      body.className = "body";
+      body.textContent = text;
+      b.appendChild(k);
+      b.appendChild(body);
+      b.addEventListener("click", function(){ choose(i); });
+      elOpts.appendChild(b);
+    });
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function choose(choice){
+    if (locked) return;
+    locked = true;
+    var item = QUESTIONS[idx];
+    var right = choice === item.correct;
+
+    if (firstTry[idx] === undefined) firstTry[idx] = right;
+    picks[idx] = choice;
+
+    var buttons = elOpts.querySelectorAll("button.opt");
+    for (var i = 0; i < buttons.length; i++){
+      buttons[i].disabled = true;
+      if (i === item.correct) buttons[i].classList.add("correct");
+      else if (i === choice) buttons[i].classList.add("wrong");
+      else buttons[i].classList.add("faded");
+    }
+
+    elVerdict.textContent = right ? item.right : item.wrong;
+    elExplain.textContent = item.why;
+    elCite.textContent = item.cite;
+    elFeedback.className = "feedback show " + (right ? "right" : "notright");
+
+    elNext.disabled = false;
+    elNext.textContent = (idx === QUESTIONS.length - 1) ? "See the summary" : "Next question";
+  }
+
+  elNext.addEventListener("click", function(){
+    if (idx < QUESTIONS.length - 1){ idx++; render(); }
+    else { showSummary(); }
+  });
+
+  function showSummary(){
+    var score = 0;
+    for (var i = 0; i < QUESTIONS.length; i++) if (firstTry[i]) score++;
+
+    document.getElementById("scoreBig").textContent = score + " / " + QUESTIONS.length;
+    document.getElementById("scoreLbl").textContent =
+      score === QUESTIONS.length ? "all correct on the first attempt"
+      : "correct on the first attempt";
+
+    var recap = document.getElementById("recap");
+    recap.innerHTML = "";
+    QUESTIONS.forEach(function(item, i){
+      var row = document.createElement("div");
+      row.className = "row";
+      var q = document.createElement("p");
+      q.className = "q";
+      q.textContent = (i + 1) + ". " + item.q;
+      var a = document.createElement("p");
+      a.className = "a";
+      var strong = document.createElement("b");
+      strong.textContent = item.opts[item.correct];
+      a.appendChild(document.createTextNode(firstTry[i] ? "You had it: " : "Answer: "));
+      a.appendChild(strong);
+      row.appendChild(q);
+      row.appendChild(a);
+      recap.appendChild(row);
+    });
+
+    elQuiz.style.display = "none";
+    elHint.style.display = "none";
+    elSummary.classList.add("show");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  document.getElementById("restart").addEventListener("click", function(){
+    idx = 0; firstTry = []; picks = [];
+    elSummary.classList.remove("show");
+    elQuiz.style.display = "";
+    elHint.style.display = "";
+    render();
+  });
+
+  render();
+})();
+</script>
+</body>
+</html>
