@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Case 2: Reading Both Genomes at Once</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400..600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    box-sizing:border-box;
+    padding-top:env(safe-area-inset-top,0px);
+    padding-bottom:env(safe-area-inset-bottom,0px);
+    --bg:#f6f3ee; --card:#fffdf8; --alt:#ebe5da; --ink:#1d2433; --muted:#5b6474;
+    --teal:#1d6f80; --teal-soft:#e6f1f3; --orange:#d9822b; --otxt:#a4520f;
+    --red:#9b2226; --red-soft:#f7e7e7; --green:#1d6f80; --green-soft:#e6f1f3;
+    --line:#d9d2c6; --dark:#172033;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#141a26; --card:#1d2533; --alt:#232c3b; --ink:#f3efe7; --muted:#b8bfcc;
+      --teal:#8fc6d1; --teal-soft:#1d3842; --orange:#f2a65a; --otxt:#f2a65a;
+      --red:#f08d8d; --red-soft:#3a2225; --green:#8fc6d1; --green-soft:#1d3842;
+      --line:#303a4b; --dark:#0e131c;
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#141a26; --card:#1d2533; --alt:#232c3b; --ink:#f3efe7; --muted:#b8bfcc;
+    --teal:#8fc6d1; --teal-soft:#1d3842; --orange:#f2a65a; --otxt:#f2a65a;
+    --red:#f08d8d; --red-soft:#3a2225; --green:#8fc6d1; --green-soft:#1d3842;
+    --line:#303a4b; --dark:#0e131c;
+  }
+  *,*::before,*::after{box-sizing:inherit}
+  html{-webkit-text-size-adjust:100%;scroll-padding-top:env(safe-area-inset-top,0px)}
+  body{
+    margin:0;background:var(--bg);color:var(--ink);
+    font-family:'Inter',system-ui,-apple-system,"Segoe UI",Arial,sans-serif;
+    font-size:17px;line-height:1.5;
+  }
+  .wrap{max-width:720px;margin:0 auto;padding:20px 18px 56px}
+  header.top{
+    background:var(--dark);color:#f3efe7;border-radius:16px;padding:22px 22px 20px;margin-bottom:18px;
+  }
+  header.top .eyebrow{
+    font-size:13px;letter-spacing:2.5px;text-transform:uppercase;color:#f2a65a;font-weight:600;margin:0 0 10px
+  }
+  header.top h1{
+    font-family:'Fraunces',Georgia,serif;font-weight:500;font-size:27px;line-height:1.25;margin:0 0 8px;color:#f3efe7
+  }
+  header.top p.sub{margin:0;color:#8fc6d1;font-size:15px}
+
+  .vignette{
+    background:var(--card);border-left:6px solid var(--orange);border-radius:12px;
+    padding:18px 20px;margin-bottom:18px;
+  }
+  .vignette .label{
+    font-size:12px;letter-spacing:2px;text-transform:uppercase;color:var(--otxt);font-weight:700;margin:0 0 8px
+  }
+  .vignette p{margin:0;font-size:17px;line-height:1.5}
+  .vignette dl{margin:12px 0 0;display:grid;grid-template-columns:auto 1fr;gap:4px 14px;font-size:15px}
+  .vignette dt{color:var(--muted);font-weight:500}
+  .vignette dd{margin:0;font-weight:600}
+
+  .progress{display:flex;gap:6px;margin:0 0 16px}
+  .progress span{
+    flex:1;height:5px;border-radius:3px;background:var(--line);transition:background .25s
+  }
+  .progress span.done{background:var(--teal)}
+  .progress span.current{background:var(--orange)}
+
+  .qcard{background:var(--card);border-radius:14px;padding:20px;border:1px solid var(--line)}
+  .qnum{font-size:13px;letter-spacing:2px;text-transform:uppercase;color:var(--teal);font-weight:700;margin:0 0 8px}
+  .qtext{font-size:20px;line-height:1.35;font-weight:600;margin:0 0 16px}
+
+  .opts{display:flex;flex-direction:column;gap:10px}
+  button.opt{
+    font:inherit;text-align:left;width:100%;cursor:pointer;
+    background:var(--bg);color:var(--ink);border:2px solid var(--line);border-radius:11px;
+    padding:14px 16px;display:flex;gap:13px;align-items:flex-start;
+    transition:border-color .15s,background .15s;
+  }
+  button.opt:hover:not(:disabled){border-color:var(--teal)}
+  button.opt:disabled{cursor:default}
+  button.opt .key{
+    flex:0 0 27px;height:27px;border-radius:50%;background:var(--alt);color:var(--ink);
+    display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px
+  }
+  button.opt .body{flex:1;font-size:16.5px;line-height:1.4}
+  button.opt.correct{border-color:var(--green);background:var(--green-soft)}
+  button.opt.correct .key{background:var(--green);color:var(--card)}
+  button.opt.wrong{border-color:var(--red);background:var(--red-soft)}
+  button.opt.wrong .key{background:var(--red);color:var(--card)}
+  button.opt.faded{opacity:.55}
+
+  .feedback{margin-top:16px;border-radius:11px;padding:16px;display:none}
+  .feedback.show{display:block}
+  .feedback .verdict{font-weight:700;font-size:17px;margin:0 0 7px}
+  .feedback.right{background:var(--green-soft);border-left:5px solid var(--green)}
+  .feedback.right .verdict{color:var(--green)}
+  .feedback.notright{background:var(--red-soft);border-left:5px solid var(--red)}
+  .feedback.notright .verdict{color:var(--red)}
+  .feedback p{margin:0;font-size:16px;line-height:1.5}
+  .feedback .cite{display:block;margin-top:10px;font-size:13px;color:var(--muted);line-height:1.4}
+
+  .nav{margin-top:18px;display:flex;gap:10px;align-items:center}
+  button.primary{
+    font:inherit;font-weight:600;font-size:16.5px;cursor:pointer;
+    background:var(--teal);color:var(--bg);border:none;border-radius:11px;padding:14px 22px;flex:1
+  }
+  button.primary:disabled{opacity:.35;cursor:default}
+  button.ghost{
+    font:inherit;font-weight:600;font-size:15px;cursor:pointer;background:none;
+    color:var(--muted);border:2px solid var(--line);border-radius:11px;padding:12px 16px
+  }
+
+  .hint{font-size:14px;color:var(--muted);margin:14px 2px 0;line-height:1.45}
+
+  /* summary */
+  .summary{display:none}
+  .summary.show{display:block}
+  .score{
+    background:var(--card);border-radius:14px;padding:24px 20px;text-align:center;border:1px solid var(--line);margin-bottom:16px
+  }
+  .score .big{font-family:'Fraunces',Georgia,serif;font-size:54px;font-weight:500;line-height:1;color:var(--teal);margin:0}
+  .score .lbl{margin:8px 0 0;color:var(--muted);font-size:15px}
+  .recap{background:var(--card);border-radius:14px;padding:4px 20px;border:1px solid var(--line);margin-bottom:16px}
+  .recap .row{padding:16px 0;border-bottom:1px solid var(--line)}
+  .recap .row:last-child{border-bottom:none}
+  .recap .q{font-weight:600;font-size:16px;margin:0 0 6px;line-height:1.35}
+  .recap .a{margin:0;font-size:15.5px;line-height:1.45;color:var(--muted)}
+  .recap .a b{color:var(--ink)}
+  .takeaway{
+    background:var(--teal-soft);border-left:5px solid var(--teal);border-radius:11px;padding:18px 20px;margin-bottom:16px
+  }
+  .takeaway h2{font-family:'Fraunces',Georgia,serif;font-weight:500;font-size:21px;margin:0 0 10px;color:var(--ink)}
+  .takeaway ul{margin:0;padding-left:20px}
+  .takeaway li{margin-bottom:8px;font-size:16px;line-height:1.45}
+  .takeaway li:last-child{margin-bottom:0}
+  footer.foot{margin-top:24px;font-size:13px;color:var(--muted);line-height:1.5;text-align:center}
+  footer.foot a{color:var(--teal)}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="top">
+    <p class="eyebrow">Case 2</p>
+    <h1>Reading both genomes at once</h1>
+    <p class="sub">Interactive case in pharmacogenomics</p>
+  </header>
+
+  <section class="vignette">
+    <p class="label">Composite, de-identified case</p>
+    <p>A 55-year-old with newly diagnosed metastatic colorectal cancer. Tumor profiling and germline pharmacogenomic testing both return before first-line therapy is chosen.</p>
+    <dl>
+      <dt>Tumor NGS</dt><dd>BRAF V600E</dd>
+      <dt>MMR status</dt><dd>Microsatellite stable</dd>
+      <dt>Germline</dt><dd>UGT1A1 *28/*28</dd>
+      <dt>Setting</dt><dd>First line, metastatic</dd>
+    </dl>
+  </section>
+
+  <div class="progress" id="progress" aria-hidden="true"></div>
+
+  <main id="quiz">
+    <section class="qcard" id="qcard">
+      <p class="qnum" id="qnum"></p>
+      <p class="qtext" id="qtext"></p>
+      <div class="opts" id="opts"></div>
+      <div class="feedback" id="feedback">
+        <p class="verdict" id="verdict"></p>
+        <p id="explain"></p>
+        <span class="cite" id="cite"></span>
+      </div>
+      <div class="nav">
+        <button class="primary" id="next" disabled>Select an answer</button>
+      </div>
+    </section>
+    <p class="hint" id="hint">Answer on your own, then we will debrief together. Nothing you tap is recorded or sent anywhere.</p>
+  </main>
+
+  <section class="summary" id="summary">
+    <div class="score">
+      <p class="big" id="scoreBig">0 / 5</p>
+      <p class="lbl" id="scoreLbl">first-attempt answers</p>
+    </div>
+    <div class="recap" id="recap"></div>
+    <div class="takeaway">
+      <h2>What to carry back to practice</h2>
+      <ul>
+        <li>UGT1A1 *28/*28 is a poor metabolizer: 70% irinotecan starting dose, titrated by neutrophil count.</li>
+        <li>DPWG advises no change for *1/*28 heterozygotes, unlike DPYD, where heterozygotes do need a reduction.</li>
+        <li>The germline result can steer the chemotherapy backbone, not just the dose.</li>
+        <li>MSS answers the immunotherapy question; the germline answers the dosing question.</li>
+        <li>The same variant does not mean the same drug. BRAF V600E is paired with anti-EGFR therapy in colorectal cancer, not with a MEK inhibitor as in melanoma.</li>
+      </ul>
+    </div>
+    <div class="nav">
+      <button class="ghost" id="restart">Start over</button>
+    </div>
+  </section>
+
+  <footer class="foot">
+    Verify all dosing against the current CPIC guideline and FDA labeling at the time of use.<br>
+    Educational use only; institutional policy governs local practice.
+  </footer>
+
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  var QUESTIONS = [
+    {
+      "q": "Which result is germline and which is somatic?",
+      "opts": [
+        "Both are germline, since they came from the same report",
+        "BRAF V600E is germline; UGT1A1 is somatic",
+        "UGT1A1 is germline; BRAF V600E is somatic",
+        "Both are somatic, since both came from tumor sequencing"
+      ],
+      "correct": 2,
+      "right": "Correct.",
+      "wrong": "Not quite.",
+      "why": "UGT1A1 *28/*28 is inherited: it describes how this patient clears SN-38 and will be true for every future irinotecan exposure. BRAF V600E is acquired by the tumor: it describes this tumor today and can change under treatment pressure. One result predicts toxicity, the other predicts response.",
+      "cite": "Germline vs. somatic framework"
+    },
+    {
+      "q": "How does UGT1A1 *28/*28 change irinotecan dosing?",
+      "opts": [
+        "Start at 70% of standard, then increase guided by neutrophil count",
+        "No change, because only heterozygotes need adjustment",
+        "Start at 50% of standard for the full course",
+        "Avoid irinotecan entirely"
+      ],
+      "correct": 0,
+      "right": "That's it.",
+      "wrong": "Not this one.",
+      "why": "*28/*28 is a UGT1A1 poor metabolizer. DPWG recommends a 70% starting dose, increased if tolerated and guided by the neutrophil count. Note the asymmetry with DPYD: DPWG advises no action for intermediate metabolizers such as *1/*28. The FDA label separately advises considering a reduction of at least one dose level in patients known to be homozygous for *28 when irinotecan is given as a single agent. There is no CPIC guideline for this pair.",
+      "cite": "DPWG: Hulshof EC, et al. Eur J Hum Genet. 2023;31(9):982-987. Also FDA irinotecan labeling"
+    },
+    {
+      "q": "The regimen pairs encorafenib and cetuximab with a fluorouracil-based chemotherapy backbone. Which backbone do you recommend for this patient?",
+      "opts": [
+        "FOLFIRI, which is fluorouracil, leucovorin and irinotecan",
+        "mFOLFOX6, which is fluorouracil, leucovorin and oxaliplatin",
+        "Either FOLFIRI or mFOLFOX6, since UGT1A1 applies only to single-agent irinotecan",
+        "Neither FOLFIRI nor mFOLFOX6, since encorafenib and cetuximab are given without chemotherapy"
+      ],
+      "correct": 1,
+      "right": "Exactly. This is the pharmacist's contribution.",
+      "wrong": "Look at what each backbone contains.",
+      "why": "Both backbones are supported: the February 2026 full approval covers encorafenib plus cetuximab with fluorouracil-based chemotherapy, and BREAKWATER studied mFOLFOX6 and FOLFIRI. The difference that matters here is what each contains. FOLFIRI includes irinotecan, which this UGT1A1 poor metabolizer clears slowly; mFOLFOX6 uses oxaliplatin instead and avoids the problem entirely. If FOLFIRI is preferred for other reasons, the germline result sets the irinotecan starting dose at 70%. Either way, the germline result shapes the regimen, not just the dose.",
+      "cite": "FDA full approval, February 24, 2026, based on BREAKWATER (NCT04607421)"
+    },
+    {
+      "q": "The same BRAF V600E mutation in melanoma is treated with a BRAF inhibitor plus a MEK inhibitor. Here it is paired with cetuximab, an anti-EGFR antibody. Why does the partner drug differ?",
+      "opts": [
+        "Cetuximab is added for its own independent activity against colorectal tumors",
+        "Colorectal tumors carry fewer copies of BRAF V600E, so a second drug is needed for potency",
+        "MEK inhibitors are too toxic to combine with chemotherapy",
+        "In colorectal cancer, BRAF inhibition releases a feedback brake on EGFR, which reactivates the MAPK pathway and rescues the tumor"
+      ],
+      "correct": 3,
+      "right": "Correct. This is why the biomarker alone does not pick the drug.",
+      "wrong": "The answer is in the pathway, not the drug.",
+      "why": "The same variant behaves differently depending on the tissue it sits in. In colorectal cancer, active MAPK signaling normally suppresses EGFR through negative feedback. Inhibit BRAF and that brake is released: EGFR is reactivated and MAPK signaling resumes, so the tumor escapes. Blocking EGFR with cetuximab prevents the escape. The clinical consequence is stark. BRAF inhibitor monotherapy produces responses in more than half of patients with BRAF V600-mutant melanoma, but only about 5% of patients with BRAF V600E colorectal cancer. So finding the variant is only the first step: what you pair it with depends on the tumor type.",
+      "cite": "Prahallad A, et al. Nature. 2012; Corcoran RB, et al. Cancer Discov. 2012; clinical data from BEACON CRC and BREAKWATER"
+    },
+    {
+      "q": "The tumor is microsatellite stable. Does that change immunotherapy candidacy?",
+      "opts": [
+        "No, because PD-L1 status is what matters here",
+        "Yes, because MSS predicts a better response to checkpoint inhibitors",
+        "Yes, because MSS tumors generally do not respond to single-agent checkpoint inhibition",
+        "It is irrelevant once a BRAF mutation is found"
+      ],
+      "correct": 2,
+      "right": "Correct.",
+      "wrong": "Worth a second look.",
+      "why": "Microsatellite stable (mismatch repair proficient) colorectal tumors are generally not candidates for single-agent checkpoint inhibition; the benefit in colorectal cancer is concentrated in MSI-high or mismatch repair deficient disease. Note which genome answered this question: the tumor's. The patient's germline answered the irinotecan question. Neither substitutes for the other.",
+      "cite": "NCCN Colon Cancer, and FDA labeling for checkpoint inhibitors in MSI-H or dMMR disease"
+    }
+  ];
+
+  var KEYS = ["A","B","C","D"];
+  var idx = 0, locked = false, firstTry = [], picks = [];
+
+  var elProgress = document.getElementById("progress");
+  var elQnum = document.getElementById("qnum");
+  var elQtext = document.getElementById("qtext");
+  var elOpts = document.getElementById("opts");
+  var elFeedback = document.getElementById("feedback");
+  var elVerdict = document.getElementById("verdict");
+  var elExplain = document.getElementById("explain");
+  var elCite = document.getElementById("cite");
+  var elNext = document.getElementById("next");
+  var elQuiz = document.getElementById("quiz");
+  var elSummary = document.getElementById("summary");
+  var elHint = document.getElementById("hint");
+
+  function buildProgress(){
+    elProgress.innerHTML = "";
+    for (var i = 0; i < QUESTIONS.length; i++){
+      var s = document.createElement("span");
+      if (i < idx) s.className = "done";
+      else if (i === idx) s.className = "current";
+      elProgress.appendChild(s);
+    }
+  }
+
+  function render(){
+    var item = QUESTIONS[idx];
+    locked = false;
+    buildProgress();
+    elQnum.textContent = "Question " + (idx + 1) + " of " + QUESTIONS.length;
+    elQtext.textContent = item.q;
+    elFeedback.className = "feedback";
+    elNext.disabled = true;
+    elNext.textContent = "Select an answer";
+    elOpts.innerHTML = "";
+
+    item.opts.forEach(function(text, i){
+      var b = document.createElement("button");
+      b.className = "opt";
+      b.type = "button";
+      var k = document.createElement("span");
+      k.className = "key";
+      k.textContent = KEYS[i];
+      var body = document.createElement("span");
+      body.className = "body";
+      body.textContent = text;
+      b.appendChild(k);
+      b.appendChild(body);
+      b.addEventListener("click", function(){ choose(i); });
+      elOpts.appendChild(b);
+    });
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function choose(choice){
+    if (locked) return;
+    locked = true;
+    var item = QUESTIONS[idx];
+    var right = choice === item.correct;
+
+    if (firstTry[idx] === undefined) firstTry[idx] = right;
+    picks[idx] = choice;
+
+    var buttons = elOpts.querySelectorAll("button.opt");
+    for (var i = 0; i < buttons.length; i++){
+      buttons[i].disabled = true;
+      if (i === item.correct) buttons[i].classList.add("correct");
+      else if (i === choice) buttons[i].classList.add("wrong");
+      else buttons[i].classList.add("faded");
+    }
+
+    elVerdict.textContent = right ? item.right : item.wrong;
+    elExplain.textContent = item.why;
+    elCite.textContent = item.cite;
+    elFeedback.className = "feedback show " + (right ? "right" : "notright");
+
+    elNext.disabled = false;
+    elNext.textContent = (idx === QUESTIONS.length - 1) ? "See the summary" : "Next question";
+  }
+
+  elNext.addEventListener("click", function(){
+    if (idx < QUESTIONS.length - 1){ idx++; render(); }
+    else { showSummary(); }
+  });
+
+  function showSummary(){
+    var score = 0;
+    for (var i = 0; i < QUESTIONS.length; i++) if (firstTry[i]) score++;
+
+    document.getElementById("scoreBig").textContent = score + " / " + QUESTIONS.length;
+    document.getElementById("scoreLbl").textContent =
+      score === QUESTIONS.length ? "all correct on the first attempt"
+      : "correct on the first attempt";
+
+    var recap = document.getElementById("recap");
+    recap.innerHTML = "";
+    QUESTIONS.forEach(function(item, i){
+      var row = document.createElement("div");
+      row.className = "row";
+      var q = document.createElement("p");
+      q.className = "q";
+      q.textContent = (i + 1) + ". " + item.q;
+      var a = document.createElement("p");
+      a.className = "a";
+      var strong = document.createElement("b");
+      strong.textContent = item.opts[item.correct];
+      a.appendChild(document.createTextNode(firstTry[i] ? "You had it: " : "Answer: "));
+      a.appendChild(strong);
+      row.appendChild(q);
+      row.appendChild(a);
+      recap.appendChild(row);
+    });
+
+    elQuiz.style.display = "none";
+    elHint.style.display = "none";
+    elSummary.classList.add("show");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  document.getElementById("restart").addEventListener("click", function(){
+    idx = 0; firstTry = []; picks = [];
+    elSummary.classList.remove("show");
+    elQuiz.style.display = "";
+    elHint.style.display = "";
+    render();
+  });
+
+  render();
+})();
+</script>
+</body>
+</html>
